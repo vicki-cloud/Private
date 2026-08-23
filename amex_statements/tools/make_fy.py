@@ -35,7 +35,7 @@ def sc_flag(t,d):
     # SC applies to Vicki's own spend only (Standard + Deferred)
     if t['cardholder']!='VICKI ZERTOPOULOS' or t['section'] not in ('STANDARD','DEFERRED'):
         return ''
-    desc=re.sub(r'^(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}\s+','',t['desc'])
+    desc=re.sub(r'^(January|February|March|April|May|June|July|August|September|October|November|December)\s*\d{1,2}\s+','',t['desc'])
     if t['source'] in GT_SOURCES:                       # Vicki's authoritative marks
         deb=round(t['aud'],2) if (t['aud'] is not None and not t['cr']) else None
         return 'SC' if (d.isoformat(),desc,deb) in GT_FLAGS else ''
@@ -53,7 +53,7 @@ for f in FILES:
         d=datetime.date(t['year'],t['month'],t['day'])
         is_credit=(t['section']=='PAYMENT') or t['cr']
         sec={'PAYMENT':'Payment','STANDARD':'Standard','CHARGES':'Account Charge','DEFERRED':'Deferred Credit Plan'}[t['section']]
-        desc=re.sub(r'^(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2}\s+','',t['desc'])
+        desc=re.sub(r'^(January|February|March|April|May|June|July|August|September|October|November|December)\s*\d{1,2}\s+','',t['desc'])
         rows.append({'fy':fy_of(d),'date':d,'source':source,'cardholder':t['cardholder'],'section':sec,
                      'desc':desc,'foreign':t['foreign'],'cur':t['currency'],
                      'debit':None if is_credit else t['aud'],'credit':t['aud'] if is_credit else None,
@@ -108,7 +108,7 @@ def build_fy_sheet(wb,title,fy_rows,subtitle):
 
 def add_recon(wb):
     ws2=wb.create_sheet("Reconciliation")
-    ws2["A1"]="Per-Statement Reconciliation vs Printed Totals (all 38 statements)"; ws2["A1"].font=Font(bold=True,size=12,color=NAVY)
+    ws2["A1"]="Per-Statement Reconciliation vs Printed Totals (all 50 statements)"; ws2["A1"].font=Font(bold=True,size=12,color=NAVY)
     for i,h in enumerate(["Statement","Section","Extracted","Statement","Match"],1):
         c=ws2.cell(row=2,column=i,value=h); c.font=Font(bold=True,color="FFFFFF"); c.fill=PatternFill("solid",fgColor=NAVY); c.border=border
     rr=3
@@ -122,12 +122,13 @@ def add_recon(wb):
     for col,w in zip("ABCDE",[13,26,14,14,7]): ws2.column_dimensions[col].width=w
     ws2.freeze_panes="A3"
 
-fy_order=["FY2019-20","FY2020-21","FY2021-22","FY2022-23","FY2023-24"]
+fy_order=["FY2019-20","FY2020-21","FY2021-22","FY2022-23","FY2023-24","FY2024-25"]
 labels={"FY2019-20":"FY2019-20 (partial — May/Jun 2020 only)",
         "FY2020-21":"Financial Year 2020-21 (1 Jul 2020 – 30 Jun 2021)",
         "FY2021-22":"Financial Year 2021-22 (1 Jul 2021 – 30 Jun 2022)",
         "FY2022-23":"Financial Year 2022-23 (1 Jul 2022 – 30 Jun 2023)",
-        "FY2023-24":"FY2023-24 (partial — Jul 2023 only)"}
+        "FY2023-24":"Financial Year 2023-24 (1 Jul 2023 – 30 Jun 2024)",
+        "FY2024-25":"FY2024-25 (partial — Jul 2024 only)"}
 byfy={fy:[r for r in rows if r['fy']==fy] for fy in fy_order}
 
 # Summary numbers
@@ -140,7 +141,7 @@ wss=wb.create_sheet("Summary")
 wss["A1"]="Stylecolab Expense Summary by Financial Year"; wss["A1"].font=Font(bold=True,size=13,color=NAVY)
 basis={"FY2019-20":"Auto — pending review","FY2020-21":"Auto — pending review",
        "FY2021-22":"Mixed (Jun-2022 confirmed; rest auto)","FY2022-23":"Confirmed (Vicki's marks)",
-       "FY2023-24":"Confirmed (Vicki's marks)"}
+       "FY2023-24":"Mixed (Jul-2023 confirmed; rest auto)","FY2024-25":"Auto — pending review"}
 for i,h in enumerate(["Financial Year","Transactions","Total Debits","Total Credits","SC confirmed/flagged","REVIEW (to confirm)","SC basis"],1):
     c=wss.cell(row=3,column=i,value=h); c.font=Font(bold=True,color="FFFFFF"); c.fill=PatternFill("solid",fgColor=NAVY); c.border=border
 rr=4
@@ -160,11 +161,11 @@ for col,w in zip("ABCDEFG",[40,12,14,14,18,18,32]): wss.column_dimensions[col].w
 for fy in fy_order:
     build_fy_sheet(wb,fy,byfy[fy],labels[fy])
 add_recon(wb)
-out_comb="/home/user/Private/amex_statements/DavidJones_Amex_FY-split_SC-classified_2020-2023.xlsx"
+out_comb="/home/user/Private/amex_statements/DavidJones_Amex_FY-split_SC-classified_2020-2024.xlsx"
 wb.save(out_comb)
 
-# ---- Separate per-FY files (3 complete years) ----
-for fy in ["FY2020-21","FY2021-22","FY2022-23"]:
+# ---- Separate per-FY files (complete years) ----
+for fy in ["FY2020-21","FY2021-22","FY2022-23","FY2023-24"]:
     w=openpyxl.Workbook(); w.remove(w.active)
     build_fy_sheet(w,fy,byfy[fy],labels[fy])
     w.save(f"/home/user/Private/amex_statements/DavidJones_Amex_{fy}_SC-classified.xlsx")

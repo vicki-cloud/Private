@@ -19,10 +19,13 @@ FILES=[
  '3d5be94b-20220522','90a8ed32-20220622','9e62cb80-20220722','846a9f10-20220822',
  'bce499c1-20220922','0d6af30a-20221022','b15a065f-20221122','8639e389-20221222_2',
  'f0aa1a40-20230122_1','c43cde76-20230222_1','21fc6f94-20230322','eb0ec563-20230422',
- '521e8837-20230522','7e5db08b-20230622','483a6040-20230722']
+ '521e8837-20230522','7e5db08b-20230622','483a6040-20230722',
+ 'bea1622a-20230822','034614e1-20230922','29f764e8-20231022','030c8ff8-20231122',
+ 'b601f2f1-20231222','4e4a2b51-20240122','a5d74394-20240222','8265755e-20240322',
+ '19ab110a-20240422','47a97244-20240522','ec895b43-20240622','a9ee4c02-20240722']
 
 def stmt_meta(text):
-    d=re.search(MONTH_RE+r' (\d{1,2}), (\d{4})', text)
+    d=re.search(MONTH_RE+r'\s*(\d{1,2}),\s*(\d{4})', text)
     mon,day,yr=d.group(1),int(d.group(2)),int(d.group(3))
     return yr, MONTHS[mon], day
 
@@ -43,7 +46,7 @@ def parse(path):
     cur=None  # current txn dict
 
     def month_line(l):
-        m=re.match('^'+MONTH_RE+r'\s+(\d{1,2})\b(.*)$', l)
+        m=re.match('^'+MONTH_RE+r'\s*(\d{1,2})\b(.*)$', l)
         return m
 
     def flush():
@@ -108,6 +111,11 @@ def parse(path):
         if cur is not None:
             if l=='CR':
                 cur['cr']=True; i+=1; continue
+            m=re.match(r'^([A-Z][A-Z .]+?)\s+CR$', l)   # e.g. "UNITED STATES DOLLAR CR" (foreign credit)
+            if m:
+                cur['cr']=True
+                if not cur['currency']: cur['currency']=m.group(1).strip()
+                i+=1; continue
             if re.match(r'^[A-Z][A-Z .]+$', l) and 'AUD' not in l:  # currency name
                 if not cur['currency']: cur['currency']=l
                 i+=1; continue
